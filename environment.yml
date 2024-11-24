@@ -1,0 +1,33 @@
+# To create a new environment, run: conda env create --file environment.yml
+name: arcturus
+channels:
+  - conda-forge
+  - defaults
+  - huggingface
+  - nvidia
+  - pytorch
+dependencies:
+  - python=3.12
+  - pip
+  - accelerate
+  - bitsandbytes=*=*cuda*
+  - nvidia::cuda-toolkit
+  - cupy
+  - dataclasses-json
+  - gdown
+  - ipykernel
+  - ipywidgets
+  - matplotlib-base
+  - python-dotenv
+  - pytorch-cuda
+  - pytorch=*=*cuda*
+  - scipy
+  - torchaudio
+  - tqdm
+  - transformers
+  - pip:
+    - kaggle
+    - optimum
+    - peft
+    - symusic
+    - trl
