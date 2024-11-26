@@ -32,6 +32,12 @@ def preprocess(
         for key in UNNECESSARY_PROPERTIES:
             del datapoint[key]
 
+    def scale(value : float):
+        """
+        Scale value down from Emotic's range (1-10) to EmoBank's range (1-5)
+        """
+        return round((max([(value - 1), 0]) / 2.25) + 1, 3)
+
     with open(split_path, "r") as f:
         contents = csv.DictReader(f)
         for row in contents:
@@ -46,10 +52,11 @@ def preprocess(
                         string_labels.append(key)
                 except Exception as e:
                     raise Exception(f"{row[key], key}", {e})
+            
             datapoint = EmoticData(
-                valence=float(valence),
-                arousal=float(arousal),
-                dominance=float(dominance),
+                valence=scale(float(valence)),
+                arousal=scale(float(arousal)),
+                dominance=scale(float(dominance)),
                 labels=string_labels
             )
             preprocessed_dataset.append(datapoint)
