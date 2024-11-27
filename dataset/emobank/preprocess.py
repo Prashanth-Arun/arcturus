@@ -1,32 +1,24 @@
-from dataclasses import dataclass
-from typing import TypedDict
+from .dataset import EmoBankItem
 import csv
 import json
 import os
 
 DEFAULT_EMOBANK_PATH = os.path.join(os.getcwd(), "data", "emobank", "raw.csv")
 
-@dataclass
-class EmoBankData(TypedDict):
-    valence : float
-    arousal : float
-    dominance : float
-    text : str
-
 def preprocess(
     path : str = DEFAULT_EMOBANK_PATH
-) -> tuple[list[EmoBankData], list[EmoBankData], list[EmoBankData]]:
+) -> tuple[list[EmoBankItem], list[EmoBankItem], list[EmoBankItem]]:
     """
     Loads the raw EmoBank CSV and returns a train-eval-test split with only the required attributes.
     """
-    train_dataset : list[EmoBankData] = []
-    eval_dataset : list[EmoBankData] = []
-    test_dataset : list[EmoBankData] = []
+    train_dataset : list[EmoBankItem] = []
+    eval_dataset : list[EmoBankItem] = []
+    test_dataset : list[EmoBankItem] = []
 
     with open(path, "r") as f:
         contents = csv.DictReader(f)
         for row in contents:
-            datapoint = EmoBankData(
+            datapoint = EmoBankItem(
                 valence=float(row['V']),
                 arousal=float(row['A']),
                 dominance=float(row['D']),
@@ -45,9 +37,9 @@ def preprocess(
 
 
 def export(
-    train_set : list[EmoBankData],
-    eval_set : list[EmoBankData],
-    test_set : list[EmoBankData],
+    train_set : list[EmoBankItem],
+    eval_set : list[EmoBankItem],
+    test_set : list[EmoBankItem],
     original_path : str = DEFAULT_EMOBANK_PATH
 ) -> None:
     
