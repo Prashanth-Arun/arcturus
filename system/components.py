@@ -1,6 +1,6 @@
 from transformers import BertModel, AutoModelForCausalLM, WhisperForConditionalGeneration
 from torch import Tensor
-from torch.nn import Module, Linear, Dropout
+from torch.nn import Module, Linear, Dropout, ReLU, Sigmoid
 from typing import TypeVar
 
 Data = TypeVar("Data") # placeholder; remove afterwards.
@@ -16,6 +16,8 @@ class BERTForVADMapping(Module):
         self.model = BertModel.from_pretrained("bert-base-cased")
         self.dropout = Dropout(self.model.config['hidden_dropout_prob'])
         self.vad_head = Linear(self.model.config['hidden_size'], 3)
+        self.activation = ReLU()
+        self.sigmoid = Sigmoid()
 
     def forward(self, data : Data) -> Tensor:
         _last_hidden_state, pooler_out = self.model(**data)
@@ -41,9 +43,9 @@ class StringLabelClassifier(Module):
         self.dropout = Dropout(config.dropout)
 
     def forward(self, data : Data) -> Tensor:
-        layer_1_out = self.input_layer(data)
+        layer_1_out = self.activation(self.input_layer(data))
         layer_1_drop = self.dropout(layer_1_out)
-        prediction = self.output_layer(layer_1_drop)
+        prediction = self.sigmoid(self.output_layer(layer_1_drop))
         return prediction
     
     @classmethod
