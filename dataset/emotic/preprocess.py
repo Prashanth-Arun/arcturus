@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import TypedDict, Dict
+from .dataset import EmoticItem
+from typing import Dict
 import csv
 import json
 import os
@@ -10,22 +10,15 @@ UNNECESSARY_PROPERTIES = [
     "X_min", "Y_min", "X_max", "Y_max", "Arr_name", "Crop_name"
 ]
 
-@dataclass
-class EmoticData(TypedDict):
-    valence : float
-    arousal : float
-    dominance : float
-    labels : list[str]
-
 def preprocess(
     base_path : str,
     split : str,
-) -> list[EmoticData]:
+) -> list[EmoticItem]:
     """
     Loads a split for the Emotic dataset and returns a preprocessed version, which contains only relevant properties
     (i.e., Valence, Arousal, Dominance, string emotion labels)
     """
-    preprocessed_dataset : list[EmoticData] = []
+    preprocessed_dataset : list[EmoticItem] = []
     split_path = os.path.join(base_path, f"{split}.csv")
 
     def strip_unnecessary(datapoint : Dict):
@@ -44,27 +37,20 @@ def preprocess(
             strip_unnecessary(row)
             valence, arousal, dominance = (row['Valence'], row['Arousal'], row['Dominance'])
             del row['Valence'], row['Arousal'], row['Dominance']
-            string_labels : list[str] = []
-            for key in row:
-                try:
-                    val = float(row[key])
-                    if val == 1.0:
-                        string_labels.append(key)
-                except Exception as e:
-                    raise Exception(f"{row[key], key}", {e})
+            emotion_labels = [float(row[k]) for k in row]
             
-            datapoint = EmoticData(
+            datapoint = EmoticItem(
                 valence=scale(float(valence)),
                 arousal=scale(float(arousal)),
                 dominance=scale(float(dominance)),
-                labels=string_labels
+                labels=emotion_labels
             )
             preprocessed_dataset.append(datapoint)
 
     return preprocessed_dataset
 
 def export(
-    dataset : list[EmoticData],
+    dataset : list[EmoticItem],
     base_path : str,
     split : str
 ):
