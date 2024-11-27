@@ -1,14 +1,8 @@
-from .dataset import EmoticItem
+from .unit import EmoticItem, DEFAULT_EMOTIC_PATH, UNNECESSARY_PROPERTIES
 from typing import Dict
 import csv
 import json
 import os
-
-DEFAULT_EMOTIC_PATH = os.path.join(os.getcwd(), "data", "emotic")
-UNNECESSARY_PROPERTIES = [
-    "Filename", "Width", "Height", "Age", "Gender", 
-    "X_min", "Y_min", "X_max", "Y_max", "Arr_name", "Crop_name"
-]
 
 def preprocess(
     base_path : str,
