@@ -23,6 +23,13 @@ class BERTForVADMapping(Module):
         vad_embeddings = self.vad_head(pooler_out)
         return vad_embeddings
     
+    @classmethod
+    def from_pretrained(
+        cls,
+        checkpoint_path : str
+    ) -> "BERTForVADMapping":
+        pass
+    
 
 class StringLabelClassifier(Module):
 
@@ -38,3 +45,10 @@ class StringLabelClassifier(Module):
         layer_1_drop = self.dropout(layer_1_out)
         prediction = self.output_layer(layer_1_drop)
         return prediction
+    
+    @classmethod
+    def from_pretrained(
+        cls,
+        checkpoint_path : str
+    ) -> "StringLabelClassifier":
+        pass
