@@ -1,29 +1,59 @@
-from transformers import BertModel, AutoModelForCausalLM, WhisperForConditionalGeneration
+from transformers import (
+    BertModel, 
+    BertConfig,
+    AutoModelForCausalLM, 
+    WhisperForConditionalGeneration
+)
+from dataset.emobank import EmoBankData
+from dataset.emotic import EmoticItem
+from transformers.modeling_outputs import BaseModelOutput
 from torch import Tensor
-from torch.nn import Module, Linear, Dropout, ReLU, Sigmoid
+from torch.nn import Module, Linear, Dropout, MSELoss
 from typing import TypeVar
+from .unit import BERTForVADMappingOutput
 
-Data = TypeVar("Data") # placeholder; remove afterwards.
 DataConfig = TypeVar("DataConfig") # placeholder
-
-ChatMusicianModel = TypeVar("ChatMusicianModel", AutoModelForCausalLM)
-WhisperModel = TypeVar("WhisperModel", WhisperForConditionalGeneration)
 
 class BERTForVADMapping(Module):
 
     def __init__(self):
         super().__init__()
-        self.model = BertModel.from_pretrained("bert-base-cased")
-        self.dropout = Dropout(self.model.config['hidden_dropout_prob'])
-        self.vad_head = Linear(self.model.config['hidden_size'], 3)
-        self.activation = ReLU()
-        self.sigmoid = Sigmoid()
 
-    def forward(self, data : Data) -> Tensor:
-        _last_hidden_state, pooler_out = self.model(**data)
-        pooler_out = self.dropout(pooler_out)
-        vad_embeddings = self.vad_head(pooler_out)
-        return vad_embeddings
+        self.model = BertModel.from_pretrained("bert-base-cased")
+        self.bert_config = self.model.config
+        assert isinstance(self.bert_config, BertConfig)
+
+        self.dropout = Dropout(self.bert_config.hidden_dropout_prob)
+        self.vad_head = Linear(self.bert_config.hidden_size, 3)
+        self.loss_criterion = MSELoss()
+
+    def forward(self, data : EmoBankData) -> BERTForVADMappingOutput:
+
+        if self.training:
+            assert 'labels' in data
+
+        B, T = data['input_ids'].shape
+        E = self.bert_config.hidden_size
+
+        encoder_output : BaseModelOutput = self.model(**data)
+        hidden_state : Tensor = encoder_output.last_hidden_state[:, 0, :]
+        assert hidden_state.shape == (B, E)
+
+        vad_embeddings : Tensor = self.vad_head(self.dropout(hidden_state))
+        assert vad_embeddings.shape == (B, 3)
+
+        output = BERTForVADMappingOutput(
+            vad_values=vad_embeddings
+        )
+
+        if 'labels' in data:
+            labels : Tensor = data['labels']
+            assert labels.shape == (B, 3)
+            loss : Tensor = self.loss_criterion(vad_embeddings, labels)
+            assert loss.shape == (B,)
+            output['loss'] = loss
+
+        return output
     
     @classmethod
     def from_pretrained(
@@ -42,7 +72,7 @@ class StringLabelClassifier(Module):
         self.output_layer = Linear(config.hidden_size, len(self.labels))
         self.dropout = Dropout(config.dropout)
 
-    def forward(self, data : Data) -> Tensor:
+    def forward(self, data : EmoticItem) -> Tensor:
         layer_1_out = self.activation(self.input_layer(data))
         layer_1_drop = self.dropout(layer_1_out)
         prediction = self.sigmoid(self.output_layer(layer_1_drop))
