@@ -67,7 +67,10 @@ class BERTForVADMapping(Module):
         cls,
         checkpoint_path : str
     ) -> "BERTForVADMapping":
-        pass
+        model = cls()
+        device = model.device
+        model.load_state_dict(torch.load(checkpoint_path, weights_only=True, map_location=device))
+        return model
     
 
 class StringLabelClassifier(Module):
