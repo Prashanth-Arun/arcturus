@@ -1,5 +1,5 @@
 
-from .unit import EmoticItem, DEFAULT_EMOTIC_PATH, LABEL_TO_STRING_MAP
+from .unit import EmoticData, EmoticItem, DEFAULT_EMOTIC_PATH, LABEL_TO_STRING_MAP
 from torch import Tensor, tensor
 from torch.utils.data import Dataset, DataLoader
 from typing import Optional
@@ -37,8 +37,12 @@ class EmoticDataset(Dataset):
     def __len__(self) -> int:
         return len(self.dataset)
     
-    def __getitem__(self, index: int) -> EmoticItem:
-        return self.dataset[index]
+    def __getitem__(self, index: int) -> EmoticData:
+        datapoint = self.dataset[index]
+        return EmoticData(
+            vad_values=[datapoint['valence'], datapoint['arousal'], datapoint['dominance']],
+            labels=datapoint['labels']
+        )
     
     def loader(self, batch_size: int, shuffle: bool) -> DataLoader:
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)

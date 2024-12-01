@@ -41,8 +41,14 @@ LABEL_TO_STRING_MAP = dict({
 
 @dataclass
 class EmoticItem(TypedDict):
-    valence : Tensor
-    arousal : Tensor
-    dominance : Tensor
+    valence : float
+    arousal : float
+    dominance : float
+    labels : list[float]
+
+
+@dataclass
+class EmoticData(TypedDict):
+    vad_values : Tensor
     labels : NotRequired[Tensor]
 
