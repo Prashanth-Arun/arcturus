@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from torch import Tensor
 from typing import TypedDict
 
 DEFAULT_EMOTIC_PATH = os.path.join(os.getcwd(), "data", "emotic")
@@ -40,8 +41,8 @@ LABEL_TO_STRING_MAP = dict({
 
 @dataclass
 class EmoticItem(TypedDict):
-    valence : float
-    arousal : float
-    dominance : float
-    labels : list[float]
+    valence : Tensor
+    arousal : Tensor
+    dominance : Tensor
+    labels : Tensor
 
