@@ -1,5 +1,5 @@
 
-from .unit import EmoticData, EmoticItem, DEFAULT_EMOTIC_PATH, LABEL_TO_STRING_MAP
+from .unit import EmoticData, DEFAULT_EMOTIC_PATH, LABEL_TO_STRING_MAP
 from torch import Tensor, tensor
 from torch.utils.data import Dataset, DataLoader
 from typing import Optional
@@ -25,12 +25,10 @@ class EmoticDataset(Dataset):
             data = json.load(f)
 
         data = data[:limit]
-        self.dataset : list[EmoticItem] = []
+        self.dataset : list[EmoticData] = []
         for item in data:
-            self.dataset.append(EmoticItem(
-                valence=tensor(item['valence']),
-                arousal=tensor(item['arousal']),
-                dominance=tensor(item['dominance']),
+            self.dataset.append(EmoticData(
+                vad_values=tensor([item['valence'], item['arousal'], item['dominance']]),
                 labels=tensor(item['labels'])
             ))
 
@@ -38,11 +36,7 @@ class EmoticDataset(Dataset):
         return len(self.dataset)
     
     def __getitem__(self, index: int) -> EmoticData:
-        datapoint = self.dataset[index]
-        return EmoticData(
-            vad_values=[datapoint['valence'], datapoint['arousal'], datapoint['dominance']],
-            labels=datapoint['labels']
-        )
+        return self.dataset[index]
     
     def loader(self, batch_size: int, shuffle: bool) -> DataLoader:
         return DataLoader(self, batch_size=batch_size, shuffle=shuffle)

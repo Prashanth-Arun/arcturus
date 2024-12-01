@@ -5,16 +5,12 @@ from transformers import (
     WhisperForConditionalGeneration
 )
 from dataset.emobank import EmoBankData
-from dataset.emotic import EmoticItem
+from dataset.emotic import EmoticData
 from transformers.modeling_outputs import BaseModelOutput
 from torch import Tensor
-from torch.nn import Module, Linear, Dropout, MSELoss
-from typing import TypeVar
-from .unit import BERTForVADMappingOutput
-
+from torch.nn import Module, Linear, Dropout, MSELoss, BCELoss, ReLU, Sigmoid
+from .unit import BERTForVADMappingOutput, StringLabelClassifierConfig, StringLabelClassifierOutput
 import torch
-
-DataConfig = TypeVar("DataConfig") # placeholder
 
 class BERTForVADMapping(Module):
 
@@ -29,7 +25,6 @@ class BERTForVADMapping(Module):
         self.dropout = Dropout(self.bert_config.hidden_dropout_prob)
         self.vad_head = Linear(self.bert_config.hidden_size, 3).to(self.device)
         self.loss_criterion = MSELoss()
-
 
     def forward(self, data : EmoBankData) -> BERTForVADMappingOutput:
 
@@ -71,26 +66,60 @@ class BERTForVADMapping(Module):
         device = model.device
         model.load_state_dict(torch.load(checkpoint_path, weights_only=True, map_location=device))
         return model
-    
+
 
 class StringLabelClassifier(Module):
 
-    def __init__(self, config : DataConfig):
+    def __init__(self, config : StringLabelClassifierConfig):
         super().__init__()
-        self.labels = config.labels
-        self.input_layer = Linear(3, config.hidden_size)
-        self.output_layer = Linear(config.hidden_size, len(self.labels))
-        self.dropout = Dropout(config.dropout)
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        self.labels = config['labels']
 
-    def forward(self, data : EmoticItem) -> Tensor:
-        layer_1_out = self.activation(self.input_layer(data))
-        layer_1_drop = self.dropout(layer_1_out)
-        prediction = self.sigmoid(self.output_layer(layer_1_drop))
-        return prediction
+        # Structure
+        self.input_layer = Linear(3, config['hidden_size']).to(self.device)
+        self.output_layer = Linear(config['hidden_size'], len(self.labels)).to(self.device)
+
+        # Forward() and Trainign Components
+        self.activation = ReLU()
+        self.dropout = Dropout(config['dropout'])
+        self.loss_criterion = BCELoss()
+        self.threshold = config['threshold']
+        self.sigmoid = Sigmoid()
+
+    def forward(self, data : EmoticData) -> StringLabelClassifierOutput:
+
+
+        B, _ = data['vad_values'].shape
+        L = len(self.labels)
+
+        if self.training:
+            assert 'labels' in data
+            assert data['labels'].shape == (B,L)
+
+        layer_1_out = self.input_layer(data['vad_values'])
+        layer_1_out = self.activation(layer_1_out)
+        layer_2_out = self.output_layer(layer_1_out)
+        scaled_output = self.sigmoid(layer_2_out)     
+        prediction = torch.tensor(scaled_output > self.threshold, dtype=torch.float)
+
+        output = StringLabelClassifierOutput(
+            scaled_logits=scaled_output,
+            predictions=prediction
+        )
+
+        if 'labels' in data:
+            assert scaled_output.shape == (B, L)
+            loss = self.loss_criterion(scaled_output, data['labels'])
+            output['loss'] = loss
+
+        return output
     
     @classmethod
     def from_pretrained(
         cls,
         checkpoint_path : str
     ) -> "StringLabelClassifier":
-        pass
+        model = cls()
+        device = model.device
+        model.load_state_dict(torch.load(checkpoint_path, weights_only=True, map_location=device))
+        return model

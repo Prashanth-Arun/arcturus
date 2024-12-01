@@ -1,17 +1,23 @@
-from system.components import BERTForVADMapping, BERTForVADMappingOutput
+from system.components import (
+    BERTForVADMapping, 
+    BERTForVADMappingOutput,
+    StringLabelClassifierOutput,
+    StringLabelClassifier
+)
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
-from typing import Optional
+from typing import Optional, TypeVar
 from .util import to_device
 
 import os
-import sys
 import torch
 
 VERBOSITY_INTERVAL : int = 20
+Model = TypeVar("Model", BERTForVADMapping, StringLabelClassifier)
+Output = TypeVar("Output", BERTForVADMappingOutput, StringLabelClassifierOutput)
 
-def train_vad_classifier(
-    model: BERTForVADMapping,
+def train(
+    model: Model,
     optimizer: Optimizer,
     train_dataloader: DataLoader,
     validation_dataloader: DataLoader,
@@ -27,7 +33,7 @@ def train_vad_classifier(
         model.train()
         for i, batch in enumerate(train_dataloader):
             batch = to_device(batch, model.device)
-            output : BERTForVADMappingOutput = model(batch)
+            output : Output = model(batch)
             loss = output['loss']
             loss.backward()
             optimizer.step()
@@ -46,7 +52,7 @@ def train_vad_classifier(
         for i, batch in enumerate(validation_dataloader):
             batch = to_device(batch, model.device)
             with torch.no_grad():
-                output : BERTForVADMappingOutput = model(batch)
+                output : Output = model(batch)
                 loss = output['loss']
 
             print(f"Batch {i + 1}; Loss = {loss.item()}")

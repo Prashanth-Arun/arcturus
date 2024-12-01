@@ -1,7 +1,7 @@
 from system import BERTForVADMapping
 from dataset.emobank import EmoBankDataset
 from torch.optim import Adam
-from train.vad_classifier import train_vad_classifier
+from train.vad_classifier import train
 from train.config import TrainingConfig
 import os
 import sys
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     print(config)
 
     # Call the training script
-    train_vad_classifier(
+    train(
         model=model,
         optimizer=optimizer,
         train_dataloader=train_loader,
