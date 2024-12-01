@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 from torch import Tensor
-from typing import TypedDict
+from typing import TypedDict, NotRequired
 
 DEFAULT_EMOTIC_PATH = os.path.join(os.getcwd(), "data", "emotic")
 
@@ -44,5 +44,5 @@ class EmoticItem(TypedDict):
     valence : Tensor
     arousal : Tensor
     dominance : Tensor
-    labels : Tensor
+    labels : NotRequired[Tensor]
 
