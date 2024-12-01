@@ -11,13 +11,13 @@ BASE_PATH = os.path.join(os.getcwd(), "artifacts")
 
 # EXPERIMENT PARAMETERS
 TASK = "train"
-EXPERIMENT_NAME = "trial_lr5en4_bs64"
+EXPERIMENT_NAME = "trial_lr1en4_bs64"
 MODEL = "vad_classifier"
 
 # TRAINING PARAMETERS
 BATCH_SIZE = 64
-LEARNING_RATE = 5e-4
-NUM_EPOCHS = 5
+LEARNING_RATE = 1e-5
+NUM_EPOCHS = 3
 DO_CHECKPOINTING = True
 
 if __name__ == "__main__":
