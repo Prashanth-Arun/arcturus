@@ -18,7 +18,7 @@ class EmoticDataset(Dataset):
     ):
         super().__init__()
 
-        assert split in ['train', 'validation', 'test']
+        assert split in ['train', 'train_extra', 'validation', 'test']
         file_path = os.path.join(base_path, f"{split}.json")
 
         with open(file_path, "r") as f:

@@ -38,9 +38,8 @@ def train(
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            if i % 10 == 0:
-                print(f"Batch {i + 1}; Loss = {loss.item()}")
-
+            
+            print(f"Batch {i + 1}; Loss = {loss.item()}")
             del batch, output, loss
 
         if do_checkpointing:
@@ -56,5 +55,4 @@ def train(
                 loss = output['loss']
 
             print(f"Batch {i + 1}; Loss = {loss.item()}")
-
             del batch, output, loss

@@ -1,23 +1,23 @@
-from system import BERTForVADMapping
-from dataset.emobank import EmoBankDataset
+from system.unit import StringLabelClassifierConfig
+from system import StringLabelClassifier
+from dataset.emotic import EmoticDataset
 from torch.optim import Adam
 from train.classifier import train
 from train.config import TrainingConfig
 import os
-import sys
 
 # BASE PATH
 BASE_PATH = os.path.join(os.getcwd(), "artifacts")
 
 # EXPERIMENT PARAMETERS
 TASK = "train"
-EXPERIMENT_NAME = "trial_lr1en4_bs64"
-MODEL = "vad_classifier"
+EXPERIMENT_NAME = "trial_lr9en4_bs50"
+MODEL = "label_classifier"
 
 # TRAINING PARAMETERS
-BATCH_SIZE = 64
-LEARNING_RATE = 1e-5
-NUM_EPOCHS = 3
+BATCH_SIZE = 50
+LEARNING_RATE = 9e-4
+NUM_EPOCHS = 7
 DO_CHECKPOINTING = True
 
 if __name__ == "__main__":
@@ -50,13 +50,14 @@ if __name__ == "__main__":
         f.write(config.to_json())
 
     # Load the model and optimizer
-    model = BERTForVADMapping()
+    config = StringLabelClassifierConfig.default()
+    model = StringLabelClassifier(config=config)
     optimizer = Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Load the datasets and loaders
-    train_dataset = EmoBankDataset(split="train")
+    train_dataset = EmoticDataset(split="train_extra")
     train_loader = train_dataset.loader(batch_size=BATCH_SIZE, shuffle=True)
-    validation_dataset = EmoBankDataset(split="validation")
+    validation_dataset = EmoticDataset(split="test")
     validation_loader = validation_dataset.loader(batch_size=BATCH_SIZE, shuffle=False)
 
     print(config)
