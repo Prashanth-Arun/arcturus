@@ -5,17 +5,17 @@ from .util import (
     load_from_lora_checkpoint, 
     load_chatmusician_from_pretrained,
     load_chatmusician_tokenizer,
+    construct_music,
     PROMPT_GEN,
     PROMPT_STR,
     PROMPT_VAD
 )
 from transformers import WhisperForConditionalGeneration, WhisperProcessor, TextStreamer, BatchEncoding, GenerationConfig
-from typing import TypeVar
+from typing import TypeVar, Optional
 import torch
 import warnings
 
 Input = TypeVar("Input", str, AudioInput) # can either be a string or an audio file
-Output = TypeVar("Output", str, torch.Tensor)
 
 class ArcturusModel():
 
@@ -94,7 +94,29 @@ class ArcturusModel():
         return model_input
 
 
-    def __call__(self, system_input : Input, debug : bool = False) -> Output:
+    def _generate(self, model_input : BatchEncoding, message : Optional[int] = None) -> str:
+        
+        if message is not None:
+            print(message)
+
+        # Set a text streamer for verbose output
+        if self.config['stream_output']:
+            streamer = TextStreamer(self.chatmusician_tokenizer, skip_prompt=False, skip_special_tokens=True)
+        else:
+            streamer = None
+
+        response = self.chatmusician.generate(
+            input_ids=model_input["input_ids"].to(self.chatmusician.device),
+            streamer=streamer,
+            attention_mask=model_input['attention_mask'].to(self.chatmusician.device),
+            eos_token_id=self.tokenizer.eos_token_id,
+            generation_config=self.generation_config,
+        )
+        response = self.tokenizer.decode(response[0][model_input["input_ids"].shape[1]:], skip_special_tokens=True)
+        return response
+
+
+    def __call__(self, system_input : Input, name : str = "arcturus_sample", debug : bool = False) -> str:
         
         # Get the text input
         text : str = ""
@@ -123,21 +145,17 @@ class ArcturusModel():
             valence, arousal, dominance = tuple(vad_values.tolist())
             compose_prompt : str = PROMPT_VAD.safe_substitute({"valence" : valence, "arousal" : arousal, "dominance" : dominance})
 
-        # Set a text streamer for verbose output
-        if self.config['stream_output']:
-            streamer = TextStreamer(self.chatmusician_tokenizer, skip_prompt=False, skip_special_tokens=True)
-        else:
-            streamer = None
-
         # Construct and tokenize the initial prompt
-        model_input = self._construct_chatmusician_prompt(compose_prompt)
+        compose_prompt_tokenized = self._construct_chatmusician_prompt(compose_prompt)
 
-        # Call the model on this input
-        ident_response = self.chatmusician.generate(
-            input_ids=model_input["input_ids"].to(self.chatmusician.device),
-            streamer=streamer,
-            attention_mask=model_input['attention_mask'].to(self.chatmusician.device),
-            eos_token_id=self.tokenizer.eos_token_id,
-            generation_config=self.generation_config,
-        )
-        ident_response = self.tokenizer.decode(ident_response[0][model_input["input_ids"].shape[1]:], skip_special_tokens=True)
+        # Generate the emotion identification music blueprint
+        ident_response = self._generate(compose_prompt_tokenized)
+
+        # Construct the generation input and capture the generated music
+        rule_prompt = PROMPT_GEN.safe_substitute({"rules" : ident_response})
+        rule_prompt_tokenized = self._construct_chatmusician_prompt(rule_prompt)
+        gen_response = self._generate(rule_prompt_tokenized)
+
+        # Construct the music piece based on the generated response
+        generated_music_path = construct_music(generated_music=gen_response, name=name)
+        return generated_music_path
