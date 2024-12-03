@@ -1,8 +1,8 @@
 from transformers import (
     BertModel, 
     BertConfig,
-    AutoModelForCausalLM, 
-    WhisperForConditionalGeneration
+    BertTokenizerFast,
+    BatchEncoding,
 )
 from dataset.emobank import EmoBankData
 from dataset.emotic import EmoticData
@@ -19,6 +19,7 @@ class BERTForVADMapping(Module):
         self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
         self.model = BertModel.from_pretrained("bert-base-cased").to(self.device)
+        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-cased")
         self.bert_config = self.model.config
         assert isinstance(self.bert_config, BertConfig)
 
@@ -26,7 +27,10 @@ class BERTForVADMapping(Module):
         self.vad_head = Linear(self.bert_config.hidden_size, 3).to(self.device)
         self.loss_criterion = MSELoss()
 
-    def forward(self, data : EmoBankData) -> BERTForVADMappingOutput:
+    def tokenize(self, text : str) -> BatchEncoding:
+        return self.tokenizer.encode_plus(text, return_tensors='pt').to(self.device)
+
+    def forward(self, data : EmoBankData|BatchEncoding) -> BERTForVADMappingOutput:
 
         if self.training:
             assert 'labels' in data
@@ -117,9 +121,10 @@ class StringLabelClassifier(Module):
     @classmethod
     def from_pretrained(
         cls,
+        config : StringLabelClassifierConfig,
         checkpoint_path : str
     ) -> "StringLabelClassifier":
-        model = cls()
+        model = cls(config)
         device = model.device
         model.load_state_dict(torch.load(checkpoint_path, weights_only=True, map_location=device))
         return model

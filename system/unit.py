@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataset.emotic import LABEL_TO_STRING_MAP
 from dataclasses import dataclass
 from typing import TypedDict, NotRequired, Mapping
@@ -37,3 +38,22 @@ class StringLabelClassifierConfig(TypedDict):
             threshold=threshold,
             hidden_size=hidden_size
         )
+    
+
+@dataclass
+class ArcturusConfig(TypedDict):
+    from_text : bool
+    from_vad : bool
+    use_finetuned_chatmusician : bool
+    whisper_variant : str
+    label_classifier_config : StringLabelClassifierConfig
+    vad_checkpoint : NotRequired[str]
+    label_checkpoint : NotRequired[str]
+    chatmusician_checkpoint : NotRequired[str]
+    stream_output : bool
+
+@dataclass
+class AudioInput(TypedDict):
+    path: NotRequired[str]
+    array: Iterable
+    sampling_rate: int
