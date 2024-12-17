@@ -1,5 +1,6 @@
 
 from .components import BERTForVADMapping, StringLabelClassifier
+from .control import ControlMechanism
 from .unit import ArcturusConfig, AudioInput, BERTForVADMappingOutput
 from .util import (
     load_from_lora_checkpoint, 
@@ -73,6 +74,9 @@ class ArcturusModel():
         if self.string_classifier is not None: self.string_classifier.eval()
         self.chatmusician.eval()
 
+        # Instantiate the control mechanism
+        self.control_mechamism = ControlMechanism(alpha=config['control_alpha'])
+
         # Set ChatMusician's eval strategy to use its KV Cache for faster inference
         self.chatmusician.config.use_cache = True
 
@@ -133,11 +137,15 @@ class ArcturusModel():
             vad_output : BERTForVADMappingOutput = self.vad_classifier(emo_recog_input)
             vad_values : torch.Tensor = vad_output['vad_values']
 
+        # Control the VAD embedding values
+        vad_values = self.control_mechamism(vad_values)
+
+        # Compose the prompt for ChatMusician
         # Branch here: if we are using string-based emotions, we get these values from the classifier;
         #              else, we pass in the vad values to the prompt as is.
         if not self.config['from_vad']:
             assert self.string_classifier is not None
-            # TODO: Map string classifier predictions to their corresponding labels
+            # TODO: Map string classifier predictions to their corresponding labels. Experiment-dependent.
             compose_prompt : str = PROMPT_STR.safe_substitute({"emotions" : "happiness, surprise"}) 
         else:
             assert len(vad_values.shape) == 1

@@ -47,6 +47,7 @@ class ArcturusConfig(TypedDict):
     use_finetuned_chatmusician : bool
     whisper_variant : str
     label_classifier_config : StringLabelClassifierConfig
+    control_alpha : float
     vad_checkpoint : NotRequired[str]
     label_checkpoint : NotRequired[str]
     chatmusician_checkpoint : NotRequired[str]
